@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 server = { package = "veloren-server", path = "../server" }
 common = { package = "veloren-common", path = "../common" }
+worldsim = { package = "veloren-worldsim", path = "../worldsim" }
 
 log = "0.4"
 pretty_env_logger = "0.3"

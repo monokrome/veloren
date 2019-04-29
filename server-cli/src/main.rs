@@ -2,7 +2,13 @@ use common::clock::Clock;
 use log::info;
 use server::{Event, Input, Server};
 use std::time::Duration;
-
+use std::sync::{mpsc, Arc};
+use worldsim::{
+    regionmanager::{RegionManager, meta::RegionManagerMsg},
+    server::meta::{ServerMsg},
+    job::JobManager,
+    region::Region,
+};
 const TPS: u64 = 30;
 
 fn main() {
@@ -13,6 +19,17 @@ fn main() {
 
     // Set up an fps clock
     let mut clock = Clock::new();
+
+    let (region_manager_tx, region_manager_rx) = mpsc::channel::<RegionManagerMsg>();
+    let (server_tx, server_rx) = mpsc::channel::<ServerMsg>();
+
+    let mut region_manager = RegionManager::new(region_manager_tx, server_rx);
+    let mut job_manager: Arc<JobManager> = Arc::new(JobManager::new());
+    let mut server = worldsim::server::Server::new(server_tx,region_manager_rx,job_manager.clone());
+    let mut region = Region::new((0,0),job_manager.clone());
+
+    job_manager.repeat(move || region_manager.work() );
+    job_manager.repeat(move || server.work() );
 
     // Create server
     let mut server = Server::new().expect("Failed to create server instance!");
