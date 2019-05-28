@@ -1,44 +1,109 @@
-use crate::lodstore::Layer;
-use crate::lodstore::LodLayer;
+use crate::lodstore::{
+    LodData,
+    LayerInfo,
+    LodConfig,
+    index::LodIndex,
+};
+use vek::*;
 
 #[derive(Debug, Clone)]
-pub enum Terrain {
-    // 11 is max
-    Unused11,
-    Region9 { //512m this is for normal simulation if no player nearby
-        precent_air: f32,
-        percent_forrest: f32,
-        percent_lava: f32,
-        percent_water: f32,
-    },
-    Chunk5 {//32m, same detail as region, but to not force block1 everywhere in 512 area
-        precent_air: f32,
-        percent_forrest: f32,
-        percent_lava: f32,
-        percent_water: f32,
-    },
-    Block1 {
-        material: u32,
-    },
-    SubBlock_4 {
-        material: u32,
-    },
-    // -4 is min
+pub struct Region9 {
+    precent_air: f32,
+    percent_forrest: f32,
+    percent_lava: f32,
+    percent_water: f32,
+    child_id: Option<u32>, // Chunk5 2^(7*3), this is valid
 }
 
-impl Terrain {
-    fn new() -> Self {
-        Terrain::Unused11
+#[derive(Debug, Clone)]
+pub struct Chunk5 {
+    precent_air: f32,
+    percent_forrest: f32,
+    percent_lava: f32,
+    percent_water: f32,
+    child_id: Option<u32>, // see Block0 2^(12*3)
+}
+
+#[derive(Debug, Clone)]
+pub struct Block0 {
+    material: u32,
+    child_id: Option<u32>,// In reality 2^(16*3) SubBlock_4 should be possible, but 2^48 subblocks would kill anything anyway, so save 2 bytes here
+}
+
+#[derive(Debug, Clone)]
+pub struct SubBlock_4 {
+    material: u32,
+}
+
+impl LayerInfo for Region9 {
+    fn get_child_index(self: &Self) -> Option<usize> {
+        self.child_id.map(|n| n as usize)
+    }
+    const child_layer_id: Option<u8> = Some(9);
+    const layer_volume: LodIndex = LodIndex {data: Vec3{x: 1, y: 1,z: 1}};
+    const child_len: usize = 4096;//2_usize.pow(Self::child_dim*3);
+}
+
+impl LayerInfo for Chunk5 {
+    fn get_child_index(self: &Self) -> Option<usize> {
+        self.child_id.map(|n| n as usize)
+    }
+    const child_layer_id: Option<u8> = Some(4);
+    const layer_volume: LodIndex = LodIndex {data: Vec3{x: 1, y: 1,z: 1}};
+    const child_len: usize = 32768;//2_usize.pow(Self::child_dim*3);
+}
+
+impl LayerInfo for Block0 {
+    fn get_child_index(self: &Self) -> Option<usize> {
+        self.child_id.map(|n| n as usize)
+    }
+    const child_layer_id: Option<u8> = Some(0);
+    const layer_volume: LodIndex = LodIndex {data: Vec3{x: 1, y: 1,z: 1}};
+    const child_len: usize = 4096;//2_usize.pow(Self::child_dim*3);
+}
+
+impl LayerInfo for SubBlock_4 {
+    fn get_child_index(self: &Self) -> Option<usize> {
+        None
+    }
+    const child_layer_id: Option<u8> = None;
+    const layer_volume: LodIndex = LodIndex {data: Vec3{x: 1, y: 1,z: 1}};
+    const child_len: usize = 0;
+}
+
+#[derive(Debug, Clone)]
+pub struct TerrainLodConfig {}
+
+impl LodConfig for TerrainLodConfig {
+    type L0 = SubBlock_4;
+    type L1 = ();
+    type L2 = ();
+    type L3 = ();
+    type L4 = Block0;
+    type L5 = ();
+    type L6 = ();
+    type L7 = ();
+    type L8 = ();
+    type L9 = Chunk5;
+    type L10 = ();
+    type L11 = ();
+    type L12 = ();
+    type L13 = Region9;
+    type L14 = ();
+    type L15 = ();
+
+    const anchor_layer_id: u8 = 13;
+
+    fn setup(&mut self) {
+
     }
 }
 
-const LAYER5: i8 = 11;
-const LAYER4: i8 = 9;
-const LAYER3: i8 = 5;
-const LAYER2: i8 = 0;
-const LAYER1: i8 = -4;
+pub type Terrain = LodData<TerrainLodConfig>;
 
 
+
+/*
 impl Layer for Terrain {
     fn new() -> LodLayer<Terrain> {
         let mut n = LodLayer::<Terrain>::new_data(Terrain::Unused11);
@@ -141,4 +206,4 @@ impl Layer for Terrain {
             },
         }
     }
-}
+}*/

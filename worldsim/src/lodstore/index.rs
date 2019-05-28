@@ -1,4 +1,5 @@
 use vek::*;
+use std::ops::Sub;
 
 /*
 For our LodStructures we need a type that covers the values from 0 - 2047 in steps of 1/32.
@@ -10,25 +11,50 @@ e.g. 1 represents 1/32
      65535 represents 2047 + 31/32
 */
 
-pub type LodIndex = Vec3<u16>;
+/*
+Edit: now it actually implements a value from 0 - 3*2048 - 1/32, covering over 3 regions for accessing neightbor region values
+*/
 
-pub fn to_lod_i(pos: Vec3<u16>) -> LodIndex {
-    pos.map(|x| x * 32)
+/*
+Pos goes from -2048 to 2*2048- 1/32
+*/
+
+#[derive(PartialEq, Eq, Clone, Hash, Debug)]
+pub struct LodIndex {
+    pub data: Vec3<u32>, //keep this private
 }
 
-/*will round*/
-pub fn to_lod_f(pos: Vec3<f32>) -> LodIndex {
-    pos.map(|x| (x * 32.0).round() as u16)
+impl Sub for LodIndex {
+    type Output = LodIndex;
+    fn sub(self, rhs: LodIndex) -> Self::Output {
+        LodIndex::new(
+            self.data.map2(rhs.data, |x,y| (x-y) as i32),
+        )
+    }
+}
+impl LodIndex {
+    pub fn new(pos: Vec3<i32>) -> Self {
+        Self {
+            data: pos.map(|x| (x * 32 + 65535) as u32),
+        }
+    }
+
+    pub fn newf(pos: Vec3<f32>) -> Self {
+        Self {
+            data: pos.map(|x| (x * 32.0).round() as u32 + 65535),
+        }
+    }
+
+    pub fn to_pos_i(&self) -> Vec3<i32> { self.data.map(|x| (x / 32 - 2048) as i32) }
+
+    pub fn to_pos_f(&self) -> Vec3<f32> {
+        self.data.map(|x| x as f32 / 32.0 - 2048.0)
+    }
 }
 
-pub fn to_pos_i(index: LodIndex) -> Vec3<u16> {
-    index.map(|x| x / 32)
+pub fn relative_to_1d(index: LodIndex, relative_size: LodIndex) -> usize {
+    (index.data[0] + index.data[1] * relative_size.data[0] + index.data[2] * relative_size.data[0] * relative_size.data[1]) as usize
 }
-
-pub fn to_pos_f(index: LodIndex) -> Vec3<f32> {
-    index.map(|x| x as f32 / 32.0)
-}
-
 
 pub const LEVEL_LENGTH_POW_MAX: i8 = 11;
 pub const LEVEL_LENGTH_POW_MIN: i8 = -4;
