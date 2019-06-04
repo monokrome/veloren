@@ -5,6 +5,9 @@ use conrod_core::{
 
 use super::{img_ids::Imgs, Fonts, TEXT_COLOR};
 
+#[cfg(feature = "discord")]
+use crate::{discord, discord_instance};
+
 widget_ids! {
     struct Ids {
         esc_bg,
@@ -133,6 +136,14 @@ impl<'a> Widget for EscMenu<'a> {
             .set(state.ids.menu_button_4, ui)
             .was_clicked()
         {
+            #[cfg(feature = "discord")]
+            {
+                match discord_instance.lock() {
+                    Ok(mut disc) => discord::send_menu(&mut disc),
+                    Err(e) => log::error!("couldn't send Update to discord: {}", e),
+                }
+            }
+            
             return Some(Event::Logout);
         };
         // Quit
