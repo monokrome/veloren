@@ -12,6 +12,7 @@ fn read_user_input() -> String {
     io::stdin().read_line(&mut buffer).ok().expect("Failed to set a new username");
 
     buffer
+    
 }
 
 fn main() {
@@ -40,9 +41,9 @@ fn main() {
 
     client.register(comp::Player::new(name, None));
 
+
     loop {
-        let chat_msg = read_user_input();
-        client.send_chat(chat_msg);
+        let msg = read_user_input();
 
         let events = match client.tick(comp::Control::default(), clock.get_last_delta()) {
             Ok(events) => events,
@@ -58,11 +59,13 @@ fn main() {
                 Event::Disconnect => {} // TODO
             }
         }
-
         // Clean up the server after a tick.
         client.cleanup();
 
+        client.send_chat(msg);
+        
         // Wait for the next tick.
         clock.tick(Duration::from_millis(1000 / FPS));
+
     }
 }
