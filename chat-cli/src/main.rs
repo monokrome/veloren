@@ -24,9 +24,6 @@ fn main() {
     // Set up an fps clock.
     let mut clock = Clock::new();
 
-    // Input buffer
-    let mut input = String::new();
-
     // Initialize the client
     println!("Choose your username");
     let mut name = read_user_input();
@@ -63,7 +60,7 @@ fn main() {
         client.cleanup();
 
         client.send_chat(msg);
-        
+
         // Wait for the next tick.
         clock.tick(Duration::from_millis(1000 / FPS));
 
